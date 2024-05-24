@@ -18,6 +18,7 @@
 # pylint: disable=E0401,W0611
 from urllib.parse import urlencode
 from codequick import Route, Resolver, Listitem, run # noqa = F401
+import xbmc
 import xbmcaddon
 from . import utils
 
@@ -29,15 +30,13 @@ ADDON = xbmcaddon.Addon(id=utils.ADDON_ID)
 def root(plugin, content_type="video"):
     cr = utils.init_crunchyroll_client()
     profiles = cr.get_multiprofile()
-    if len(profiles['profiles']) > 1:
+    if len(profiles) > 1:
         return_profiles = []
-        for profile in profiles['profiles']:
-            params = {
-                'profile_id': profile['profile_id']
-            }
-            return_profiles.append(Listitem.from_dict(menu, params=params, label=profile['profile_name']))
+        for profile in profiles:
+            infos = profile.to_dict()
+            return_profiles.append(Listitem.from_dict(menu, **infos))
         return return_profiles
-    return list(menu(plugin, profiles['profiles'][0]['profile_id']))
+    return list(menu(plugin, profiles[0].id))
 
 
 @Route.register
@@ -55,6 +54,7 @@ def menu(plugin, profile_id):
     yield Listitem.from_dict(categories, label=ADDON.getLocalizedString(30056))
     yield Listitem.from_dict(simulcast, label=ADDON.getLocalizedString(30053))
     yield Listitem.from_dict(my_lists, label=ADDON.getLocalizedString(30069))
+    yield Listitem.from_dict(localization_settings, label=ADDON.getLocalizedString(30094))
 
 
 # pylint: disable=W0613
@@ -245,7 +245,7 @@ def crunchylist(plugin, list_id):
 # pylint: disable=W0613
 @Route.register
 def history(plugin, page=1):
-    cr = utils.init_crunchyroll_client()
+    cr = utils.initY_crunchyroll_client()
     episodes, next_link = cr.get_history(page)
     for episode in episodes:
         infos = episode.to_dict()
@@ -268,8 +268,7 @@ def play_episode(plugin, episode_id):
     item.subtitles = utils.get_subtitles(episode_id, infos['subtitles'])
     item.set_path(infos['url'])
     listitem = item.listitem
-    audio_code = utils.iso_639_1_to_iso_639_2(infos['actual_audio'])
-    listitem.setProperty("audio_language", audio_code)
+    listitem.setProperty("audio_language", infos['actual_audio'])
     listitem.setProperty("episode_id", episode_id)
     listitem.setMimeType('application/xml+dash')
     listitem.setContentLookup(False)
@@ -298,3 +297,35 @@ def play_episode(plugin, episode_id):
     listitem.setProperty('inputstream.adaptive.license_key', '|'.join(list(license_config.values())))
 
     return item
+
+
+@Route.register
+def localization_settings(plugin):
+    yield Listitem.from_dict(select_localization_settings, params={"setting_name": "preferred_content_audio_language"}, label=ADDON.getLocalizedString(30095))
+    yield Listitem.from_dict(select_localization_settings, params={"setting_name": "preferred_content_subtitle_language"}, label=ADDON.getLocalizedString(30096))
+
+
+@Route.register
+def select_localization_settings(plugin, setting_name):
+    values = utils.get_localization_setting_values(setting_name)
+    cr = utils.init_crunchyroll_client()
+    if setting_name == "preferred_content_audio_language":
+        actual_value = cr.prefered_audio
+    else:
+        actual_value = cr.prefered_subtitle
+    for value, label in values.items():
+        
+        if actual_value == value:
+            label = f">> {label}"
+
+        xbmc.log(label)
+        yield Listitem.from_dict(update_localization_settings, params={"setting_name": setting_name, "selected_value": value}, label=label)
+
+
+@Route.register
+def update_localization_settings(plugin, setting_name, selected_value):
+    cr = utils.init_crunchyroll_client()
+    profile_id = cr.auth.data['profile_id']
+    cr.set_profile_setting(profile_id, setting_name, selected_value)
+    xbmc.executebuiltin('Container.Update')
+    return list(menu(plugin, profile_id))

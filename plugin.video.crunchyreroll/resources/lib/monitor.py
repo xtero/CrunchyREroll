@@ -169,8 +169,7 @@ class CrunchyrollVideoHandler:
         self.set_playhead()
 
     def set_subtitles(self):
-        addon = xbmcaddon.Addon(id=utils.ADDON_ID)
-        prefered_subtitle = utils.sub_locale_from_id(addon.getSettingInt("subtitle_language"))
+        prefered_subtitle = self.client.prefered_subtitle
         actual_audio = self.player.getPlayingItem().getProperty("audio_language")
         if actual_audio == prefered_subtitle:
             self.debug("Disabling subtitle")
@@ -181,7 +180,7 @@ class CrunchyrollVideoHandler:
             subtitle_stream_id = 0
             subtitles = self.player.getAvailableSubtitleStreams()
             for idx, sub in enumerate(subtitles):
-                if prefered_subtitle == sub:
+                if utils.iso_639_1_to_iso_639_2(prefered_subtitle) == sub:
                     subtitle_stream_id = idx
             self.debug(f"Selecting subtitle stream {subtitle_stream_id}")
             self.player.setSubtitleStream(subtitle_stream_id)

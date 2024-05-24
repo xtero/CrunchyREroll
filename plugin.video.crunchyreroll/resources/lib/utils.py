@@ -69,34 +69,6 @@ def iso_639_1_to_iso_639_2(code):
     return locales.get(code, "unk")
 
 
-def local_from_id(locale_id):
-    locales = [
-        "en-US",
-        "en-GB",
-        "es-419",
-        "es-ES",
-        "pt-BR",
-        "pt-PT",
-        "fr-FR",
-        "de-DE",
-        "ar-SA",
-        "it-IT",
-        "ru-RU",
-        "ta-IN",
-        "hi-IN",
-        "id-ID"
-        "ms-MY",
-        "th-TH",
-        "vi-VN",
-        "ja-JP"
-    ]
-
-    if locale_id < len(locales):
-        return locales[locale_id]
-
-    return "en-US"
-
-
 def lookup_playhead(playheads, content_id):
     for playhead in playheads:
         if playhead['content_id'] == content_id:
@@ -125,29 +97,22 @@ def number_to_int(number):
     return int(float(number))
 
 
-def lookup_stream(episode, prefered_audio_id):
+def lookup_stream(episode, prefered_audio):
     stream_id = None
     actual_audio = None
     if "versions" in episode['episode_metadata'] and episode['episode_metadata']['versions']:
-        if prefered_audio_id == 0:
+        xbmc.log(prefered_audio)
+        # If we find prefered_audio, it's return this value
+        for version in episode['episode_metadata']['versions']:
+            if version['audio_locale'] == prefered_audio:
+                stream_id = version['guid']
+                actual_audio = prefered_audio
+        # Else, we provide original version
+        if stream_id is None:
             for version in episode['episode_metadata']['versions']:
                 if version['original']:
                     stream_id = version['guid']
                     actual_audio = version['audio_locale']
-        else:
-            prefered_audio = local_from_id(prefered_audio_id - 1)
-            xbmc.log(prefered_audio)
-            # If we find prefered_audio, it's return this value
-            for version in episode['episode_metadata']['versions']:
-                if version['audio_locale'] == prefered_audio:
-                    stream_id = version['guid']
-                    actual_audio = prefered_audio
-            # Else, we provide original version
-            if stream_id is None:
-                for version in episode['episode_metadata']['versions']:
-                    if version['original']:
-                        stream_id = version['guid']
-                        actual_audio = version['audio_locale']
     else:
         stream_id = episode['id']
         actual_audio = episode['episode_metadata']['audio_locale']
@@ -194,39 +159,33 @@ def init_crunchyroll_client():
     email = addon.getSetting("crunchyroll_username")
     password = addon.getSetting("crunchyroll_password")
     settings = {
-        "prefered_subtitle": local_from_id(addon.getSettingInt("subtitle_language")),
-        "prefered_audio": addon.getSettingInt("prefered_audio"),
         "page_size": addon.getSettingInt("page_size"),
     }
     return CrunchyrollClient(email, password, settings)
 
 
-def sub_locale_from_id(locale_id):
-    locales = [
-        "eng",
-        "eng",
-        "spa",
-        "spa",
-        "por",
-        "por",
-        "fre",
-        "ger",
-        "ara",
-        "ita",
-        "rus",
-        "tam",
-        "hin",
-        "ind",
-        "may",
-        "tha",
-        "vie",
-        "jpn"
-    ]
-    if locale_id < len(locales):
-        return locales[locale_id]
-
-    return "eng"
-
-
 def get_cache_path():
     return CACHE_PATH
+
+
+def delete_from_cache(url, method):
+    req = requests.models.PreparedRequest()
+    req.prepare(url=url, method="GET")
+    s = urlquick.Session()
+    hashed_url = urlquick.hash_url(req)
+    s.cache_adapter.del_cache(hashed_url)
+
+
+def get_localization_setting_values(setting_name):
+    if setting_name == "preferred_content_audio_language":
+        url = f"{CRUNCHYROLL_STATIC_URL}/config/i18n/v3/audio_languages.json"
+    else:
+        url = f"{CRUNCHYROLL_STATIC_URL}/config/i18n/v3/timed_text_languages.json"
+    resp = urlquick.get(url, timeout=10)
+    resp.raise_for_status()
+    resp.encoding = "UTF-8"
+    data = resp.json()
+    # Japanese is not present as a value for audio language WTF !
+    if setting_name == "preferred_content_audio_language":
+        data['jp-JP'] = 'Japanese'
+    return data

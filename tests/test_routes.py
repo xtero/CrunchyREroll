@@ -112,3 +112,26 @@ class RouteTest(unittest.TestCase):
         query = f"?{pickle_query}"
         args = [query]
         exec_route(url, args)
+
+    def test_localization_settings(self):
+        url = "plugin://plugin.video.crunchyreroll/resources/lib/main/localization_settings"
+        exec_route(url)
+
+    def test_select_localization_settings(self):
+        url = "plugin://plugin.video.crunchyreroll/resources/lib/main/select_localization_settings"
+        pickle_query = serialize_data("Localization", {
+            "setting_name": "preferred_content_audio_language"
+        })
+        query = f"?{pickle_query}"
+        args = [query]
+        exec_route(url, args)
+
+    def test_update_localization_settings(self):
+        url = "plugin://plugin.video.crunchyreroll/resources/lib/main/update_localization_settings"
+        pickle_query = serialize_data("Localization", {
+            "setting_name": "preferred_content_audio_language",
+            "selected_value": "jp-JP"
+        })
+        query = f"?{pickle_query}"
+        args = [query]
+        exec_route(url, args)

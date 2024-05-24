@@ -149,3 +149,35 @@ class Category:
                 "category_id": self.id
             }
         return res
+
+
+class User:
+
+    def __init__(self, item):
+        self.name = item['profile_name']
+        self.id = item['profile_id']
+        self.avatar = item['avatar']
+        self.wallpaper = item.get('wallpapaer', 'default.png')
+        self.prefered_lang = item.get('preferred_communication_language', 'en-US')
+        self.prefered_audio = item.get('preferred_content_audio_language', 'ja-JP')
+        self.prefered_subtitle = item.get('preferred_content_subtitle_language', 'en-US')
+
+    def get_avatar(self):
+        return f"{utils.CRUNCHYROLL_STATIC_URL}/assets/avatar/170x170/{self.avatar}"
+
+    def get_wallpaper(self):
+        return f"{utils.CRUNCHYROLL_STATIC_URL}/assets/wallpaper/1920x1080/{self.wallpaper}"
+
+    def to_dict(self):
+        res = {
+            "label": self.name,
+            "art": {
+                "thumb": self.get_avatar(),
+                "landscape": self.get_wallpaper(),
+                "fanart": self.get_wallpaper()
+            },
+            "params": {
+                "profile_id": self.id
+            }
+        }
+        return res

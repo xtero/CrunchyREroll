@@ -11,7 +11,7 @@ clean:
 	rm -rf "${KODI_INSTALL}/addons/plugin.video.crunchyreroll"
 
 test: lint
-	.venv/bin/pytest
+	.venv/bin/pytest tests
 
 cleanup:
 	FOLDERS=$$(find . -name __pycache__ -not -path "./.venv/*") &&\
@@ -34,6 +34,8 @@ $(ARCHIVE):
 	cp -r ${SOURCE_FOLDER}/resources/language release/${SOURCE_FOLDER}/resources/
 	mkdir -p release/${SOURCE_FOLDER}/resources/media
 	cp ${SOURCE_FOLDER}/resources/media/* release/${SOURCE_FOLDER}/resources/media
+	mkdir -p release/${SOURCE_FOLDER}/resources/fonts
+	cp ${SOURCE_FOLDER}/resources/fonts/* release/${SOURCE_FOLDER}/resources/fonts/*
 	cp ${SOURCE_FOLDER}/resources/settings.xml release/${SOURCE_FOLDER}/resources/settings.xml
 	cp ${SOURCE_FOLDER}/{addon.xml,changelog.txt,fanart.jpg,icon.png} release/${SOURCE_FOLDER}/
 	mkdir -p archive

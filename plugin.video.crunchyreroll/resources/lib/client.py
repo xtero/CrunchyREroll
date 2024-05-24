@@ -20,7 +20,7 @@ from requests.exceptions import HTTPError
 import xbmc
 import urlquick
 from . import auth, utils
-from .model import Series, Season, Episode, Category
+from .model import Series, Season, Episode, Category, User
 
 
 class CrunchyrollClient:
@@ -31,9 +31,11 @@ class CrunchyrollClient:
     # pylint: disable=R0913
     def __init__(self, email, password, settings):
         self.auth = auth.CrunchyrollAuth(email, password)
-        self.prefered_subtitle = settings['prefered_subtitle']
-        self.prefered_audio = settings['prefered_audio']
         self.page_size = settings['page_size']
+        user = self.get_profile(self.auth.data['profile_id'])
+        self.prefered_lang = user.prefered_lang
+        self.prefered_subtitle = user.prefered_subtitle
+        self.prefered_audio = user.prefered_audio
 
     # pylint: disable=W0102
     def _post(self, url, params={}, headers={}, data={}, json=False):
@@ -46,7 +48,20 @@ class CrunchyrollClient:
         return response
 
     # pylint: disable=W0102
+    def _patch(self, url, params={}, headers={}, data={}, json=False):
+        headers['User-Agent'] = self.auth.user_agent
+        if json:
+            response = requests.patch(url, params=params, headers=headers, auth=self.auth, json=data, timeout=30)
+        else:
+            response = requests.patch(url, params=params, headers=headers, auth=self.auth, data=data, timeout=30)
+        response.raise_for_status()
+        return response
+
+    # pylint: disable=W0102
     def _get_localized(self, url, params={}, headers={}):
+        # self.prefered_lang is unsafe as UI don't let it update easily.
+        # Also the list is not easily readable in json.
+        # I prefer relying on subtitles which is most probably the speaking language of the user
         params['locale'] = self.prefered_subtitle
         response = self._get(url, params=params, headers=headers)
         response.raise_for_status()
@@ -299,9 +314,22 @@ class CrunchyrollClient:
     def get_multiprofile(self):
         url = f"{utils.CRUNCHYROLL_API_URL}/accounts/v1/me/multiprofile"
         data = self._get(url).json()
-        return data
+        res = []
+        for profile in data['profiles']:
+            res.append(User(profile))
+        return res
 
     def get_profile(self, profile_id):
         url = f"{utils.CRUNCHYROLL_API_URL}/accounts/v1/me/multiprofile/{profile_id}"
         data = self._get_cached(url).json()
-        return data
+        user = User(data)
+        return user
+
+    def set_profile_setting(self, profile_id, setting_name, setting_value):
+        url = f"{utils.CRUNCHYROLL_API_URL}/accounts/v1/me/multiprofile/{profile_id}"
+        out_data = {}
+        out_data[setting_name] = setting_value
+        data = self._patch(url, data=out_data, json=True).json()
+        utils.delete_from_cache(url, "GET")
+        user = User(data)
+        return user

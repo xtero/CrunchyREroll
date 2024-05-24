@@ -17,8 +17,6 @@
 import xbmc
 import xbmcvfs
 import xbmcaddon
-from requests.models import PreparedRequest
-from urlquick import Session, hash_url
 from . import utils
 
 
@@ -32,9 +30,4 @@ def clear_subtitles_cache():
 
 def clear_auth_cache():
     url = xbmcaddon.Addon(utils.ADDON_ID).getSetting("auth_url")
-    s = Session()
-    req = PreparedRequest()
-    req.prepare(url=url, method="GET")
-
-    hashed_url = hash_url(req)
-    s.cache_adapter.del_cache(hashed_url)
+    utils.delete_from_cache(url, "GET")

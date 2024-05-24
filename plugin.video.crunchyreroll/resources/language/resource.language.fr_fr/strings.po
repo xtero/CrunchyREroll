@@ -87,6 +87,10 @@ msgctxt "#30033"
 msgid "Hindi"
 msgstr "Hindi"
 
+msgctxt "#30034"
+msgid "Japanese"
+msgstr "Japonais"
+
 msgctxt "#30040"
 msgid "Queue"
 msgstr "File d'attente"
@@ -290,3 +294,7 @@ msgstr "Url"
 msgctxt "#30093"
 msgid "Clear Basic Auth cache"
 msgstr "Nettoyer le cache du Basic Auth"
+
+msgctxt "#30094"
+msgid "Language settings"
+msgstr "Paramètres de langue"

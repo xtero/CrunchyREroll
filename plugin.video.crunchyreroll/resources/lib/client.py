@@ -7,6 +7,7 @@ import xbmc
 import urlquick
 from . import auth, utils
 from .model import Series, Season, Episode, Category, User
+from . import http
 
 
 class CrunchyrollClient:
@@ -20,6 +21,7 @@ class CrunchyrollClient:
         self.prefered_subtitle = settings['prefered_subtitle']
         self.prefered_audio = settings['prefered_audio']
         self.page_size = settings['page_size']
+        self.scraper = http.get_or_create_scraper()
 
     # pylint: disable=W0102
     def _post(self, url, params={}, headers={}, data={}, json=False, authenticated=True):
@@ -27,10 +29,13 @@ class CrunchyrollClient:
             headers['User-Agent'] = self.auth.user_agent
 
         if json:
-            response = requests.post(url, params=params, headers=headers, auth=self.auth, json=data, timeout=30)
+            response = self.scraper.post(url, params=params, headers=headers, auth=self.auth, json=data, timeout=30)
         else:
-            response = requests.post(url, params=params, headers=headers, auth=self.auth, data=data, timeout=30)
+            response = self.scraper.post(url, params=params, headers=headers, auth=self.auth, data=data, timeout=30)
         response.raise_for_status()
+
+        http.store_scraper(self.scraper)
+
         return response
 
     # pylint: disable=W0102
@@ -47,9 +52,11 @@ class CrunchyrollClient:
         if cached:
             response = urlquick.get(url, params=params, headers=headers, auth=self.auth, timeout=30)
         else:
-            response = requests.get(url, params=params, headers=headers, auth=self.auth, timeout=30)
+            response = self.scraper.get(url, params=params, headers=headers, auth=self.auth, timeout=30)
 
         response.raise_for_status()
+
+        http.store_scraper(self.scraper)
 
         return response
 

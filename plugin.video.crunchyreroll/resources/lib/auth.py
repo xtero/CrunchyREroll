@@ -3,11 +3,11 @@
 
 from datetime import datetime
 import uuid
-import requests
 from requests.auth import AuthBase
 # pylint: disable=E0401
 from codequick.storage import PersistentDict
 from . import utils
+from . import http
 
 
 class CrunchyrollAuth(AuthBase):
@@ -55,6 +55,7 @@ class CrunchyrollAuth(AuthBase):
         self.data.flush()
 
     def _authenticate(self):
+        scraper = http.get_or_create_scraper()
         data = {
             "username": self.email,
             "password": self.password,
@@ -65,11 +66,13 @@ class CrunchyrollAuth(AuthBase):
             "device_name": self.device_name
         }
         url = f"{utils.CRUNCHYROLL_API_URL}/auth/v1/token"
-        resp = requests.post(url, headers=self.auth_headers, data=data, timeout=10)
+        resp = scraper.post(url, headers=self.auth_headers, data=data, timeout=10)
         resp.raise_for_status()
+        http.store_scraper(scraper)
         self._store_token(resp.json())
 
     def _refresh(self):
+        scraper = http.get_or_create_scraper()
         data = {
             "refresh_token": self.data['refresh_token'],
             "grant_type": "refresh_token",
@@ -79,8 +82,9 @@ class CrunchyrollAuth(AuthBase):
             "device_name": self.device_name
         }
         url = f"{utils.CRUNCHYROLL_API_URL}/auth/v1/token"
-        resp = requests.post(url, headers=self.auth_headers, data=data, timeout=10)
+        resp = scraper.post(url, headers=self.auth_headers, data=data, timeout=10)
         resp.raise_for_status()
+        http.store_scraper(scraper)
         self._store_token(resp.json())
 
     def is_auth(self):
@@ -98,6 +102,7 @@ class CrunchyrollAuth(AuthBase):
 
     def switch_profile(self, profile_id):
         if self.data['profile_id'] != profile_id:
+            scraper = http.get_or_create_scraper()
             data = {
                 "refresh_token": self.data['refresh_token'],
                 "grant_type": "refresh_token_profile_id",
@@ -108,8 +113,9 @@ class CrunchyrollAuth(AuthBase):
                 "profile_id": profile_id
             }
             url = f"{utils.CRUNCHYROLL_API_URL}/auth/v1/token"
-            resp = requests.post(url, headers=self.auth_headers, data=data, timeout=10)
+            resp = scraper.post(url, headers=self.auth_headers, data=data, timeout=10)
             resp.raise_for_status()
+            http.store_scraper(scraper)
             self._store_token(resp.json())
 
     def switch_main_profile(self):

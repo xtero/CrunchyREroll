@@ -12,7 +12,7 @@ import urlquick
 
 ADDON_ID = "plugin.video.crunchyreroll"
 # The idea is to be able mock it for future tests
-CRUNCHYROLL_API_URL = "https://beta-api.crunchyroll.com"
+CRUNCHYROLL_API_URL = "https://www.crunchyroll.com"
 CRUNCHYROLL_STATIC_URL = "https://static.crunchyroll.com"
 CRUNCHYROLL_PLAY_URL = "https://cr-play-service.prd.crunchyrollsvc.com"
 CRUNCHYROLL_LICENSE_URL = "https://cr-license-proxy.prd.crunchyrollsvc.com/v1/license/widevine"
